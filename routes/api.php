@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AttendanceOverviewController;
 use App\Http\Controllers\Api\BookController;
 use App\Http\Controllers\Api\ChurchController;
@@ -25,6 +26,8 @@ Route::post('students/{student}/image', [StudentController::class, 'uploadImage'
 Route::apiResource('teacher-module-assignments', TeacherModuleAssignmentController::class)
     ->only(['index', 'store', 'destroy']);
 Route::apiResource('sessions', SessionController::class)->except(['update']);
+Route::patch('attendance/{attendance}', [AttendanceController::class, 'update']);
+Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy']);
 
 Route::get('dashboard', DashboardController::class);
 Route::get('attendance-overview', AttendanceOverviewController::class);
