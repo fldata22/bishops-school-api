@@ -48,4 +48,20 @@ class StudentProfileTest extends TestCase
         $response = $this->getJson('/api/students/999/profile');
         $response->assertStatus(404);
     }
+
+    public function test_returns_profile_when_student_has_no_church(): void
+    {
+        $class = SchoolClass::create(['name' => 'APJ-UNITED CITIES']);
+        $student = Student::create(['name' => 'Kwame', 'class_id' => $class->id]);
+
+        $response = $this->getJson("/api/students/{$student->id}/profile");
+
+        $response->assertOk()
+            ->assertJsonPath('data.student.name', 'Kwame')
+            ->assertJsonPath('data.student.class', 'APJ-UNITED CITIES')
+            ->assertJsonPath('data.student.church', null)
+            ->assertJsonPath('data.student.gender', null)
+            ->assertJsonPath('data.attendance_rate', 0.0)
+            ->assertJsonPath('data.module_breakdown', []);
+    }
 }

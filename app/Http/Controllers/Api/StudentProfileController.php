@@ -45,8 +45,8 @@ class StudentProfileController extends Controller
             'student' => [
                 'id' => $student->id,
                 'name' => $student->name,
-                'class' => $student->schoolClass->name,
-                'church' => $student->church->name,
+                'class' => $student->schoolClass?->name,
+                'church' => $student->church?->name,
                 'gender' => $student->gender,
             ],
             'attendance_rate' => $rate,
