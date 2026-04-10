@@ -7,6 +7,11 @@ class Teacher extends Model
 {
     protected $fillable = ['name'];
 
+    public function classes(): HasMany
+    {
+        return $this->hasMany(SchoolClass::class);
+    }
+
     public function sessions(): HasMany
     {
         return $this->hasMany(Session::class);

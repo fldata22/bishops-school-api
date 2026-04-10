@@ -26,8 +26,8 @@ class StudentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'class_id' => 'required|exists:classes,id',
-            'church_id' => 'required|exists:churches,id',
-            'gender' => 'required|in:male,female',
+            'church_id' => 'nullable|exists:churches,id',
+            'gender' => 'nullable|in:male,female',
             'country' => 'nullable|string|max:255',
             'image' => 'nullable|string|max:2048',
         ]);
@@ -45,8 +45,8 @@ class StudentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'class_id' => 'required|exists:classes,id',
-            'church_id' => 'required|exists:churches,id',
-            'gender' => 'required|in:male,female',
+            'church_id' => 'nullable|exists:churches,id',
+            'gender' => 'nullable|in:male,female',
             'country' => 'nullable|string|max:255',
             'image' => 'nullable|string|max:2048',
         ]);
