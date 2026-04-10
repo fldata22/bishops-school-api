@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Session extends Model
 {
-    protected $fillable = ['class_id', 'module_id', 'teacher_id', 'date', 'topic_index'];
+    protected $fillable = ['class_id', 'module_id', 'book_id', 'chapter_index', 'teacher_id', 'date'];
 
     protected $casts = [
         'date' => 'date',
-        'topic_index' => 'integer',
+        'chapter_index' => 'integer',
     ];
 
     public function schoolClass(): BelongsTo
@@ -21,6 +21,11 @@ class Session extends Model
     public function module(): BelongsTo
     {
         return $this->belongsTo(Module::class);
+    }
+
+    public function book(): BelongsTo
+    {
+        return $this->belongsTo(Book::class);
     }
 
     public function teacher(): BelongsTo

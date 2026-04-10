@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\Book;
 use App\Models\Church;
 use App\Models\Denomination;
 use App\Models\Module;
@@ -19,13 +20,14 @@ class DashboardTest extends TestCase
     public function test_dashboard_returns_correct_structure(): void
     {
         $class = SchoolClass::create(['name' => 'Makarios']);
-        $module = Module::create(['name' => 'Loyalty', 'code' => 'L', 'topics' => ['Intro']]);
+        $module = Module::create(['name' => 'Loyalty', 'code' => 'L']);
+        $book = Book::create(['module_id' => $module->id, 'name' => 'Book 1', 'chapters' => ['Intro'], 'position' => 0]);
         $teacher = Teacher::create(['name' => 'Pastor Emmanuel']);
         $denomination = Denomination::create(['name' => 'QFC', 'abbreviation' => 'QFC']);
         $church = Church::create(['name' => 'Main', 'denomination_id' => $denomination->id]);
         $student = Student::create(['name' => 'Student A', 'class_id' => $class->id, 'church_id' => $church->id, 'gender' => 'male']);
 
-        $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'teacher_id' => $teacher->id, 'date' => now()->toDateString(), 'topic_index' => 0]);
+        $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         Attendance::create(['session_id' => $session->id, 'student_id' => $student->id, 'status' => 'present', 'participation_level' => 3]);
 
         $response = $this->getJson('/api/dashboard');
@@ -50,13 +52,14 @@ class DashboardTest extends TestCase
     public function test_teacher_targets_include_rating(): void
     {
         $class = SchoolClass::create(['name' => 'Makarios']);
-        $module = Module::create(['name' => 'Loyalty', 'code' => 'L', 'topics' => ['Intro']]);
+        $module = Module::create(['name' => 'Loyalty', 'code' => 'L']);
+        $book = Book::create(['module_id' => $module->id, 'name' => 'Book 1', 'chapters' => ['Intro'], 'position' => 0]);
         $teacher = Teacher::create(['name' => 'Pastor Emmanuel']);
         $denomination = Denomination::create(['name' => 'QFC', 'abbreviation' => 'QFC']);
         $church = Church::create(['name' => 'Main', 'denomination_id' => $denomination->id]);
         $student = Student::create(['name' => 'A', 'class_id' => $class->id, 'church_id' => $church->id, 'gender' => 'male']);
 
-        $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'teacher_id' => $teacher->id, 'date' => now()->toDateString(), 'topic_index' => 0]);
+        $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         Attendance::create(['session_id' => $session->id, 'student_id' => $student->id, 'status' => 'present']);
 
         $response = $this->getJson('/api/dashboard');

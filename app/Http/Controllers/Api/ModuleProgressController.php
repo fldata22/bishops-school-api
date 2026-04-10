@@ -12,12 +12,16 @@ class ModuleProgressController extends Controller
 {
     public function __invoke(Module $module): JsonResponse
     {
+        $books = $module->books()->get();
         $sessions = Session::where('module_id', $module->id)->get();
         $sessionIds = $sessions->pluck('id');
-        $totalTopics = count($module->topics);
 
-        $topicsTaught = $sessions->pluck('topic_index')->unique()->count();
-        $completionRate = $totalTopics > 0 ? (float) round(($topicsTaught / $totalTopics) * 100, 1) : 0.0;
+        // Total chapters = sum of all chapter arrays across all books
+        $totalChapters = $books->sum(fn ($b) => count($b->chapters));
+
+        // Distinct (book_id, chapter_index) pairs taught
+        $chaptersTaught = $sessions->unique(fn ($s) => $s->book_id . '-' . $s->chapter_index)->count();
+        $completionRate = $totalChapters > 0 ? (float) round(($chaptersTaught / $totalChapters) * 100, 1) : 0.0;
 
         $totalRecords = Attendance::whereIn('session_id', $sessionIds)->count();
         $presentRecords = Attendance::whereIn('session_id', $sessionIds)->where('status', 'present')->count();
@@ -36,24 +40,47 @@ class ModuleProgressController extends Controller
             ];
         });
 
-        $topicAttendance = collect($module->topics)->map(function ($topicName, $index) use ($sessionIds, $sessions) {
-            $topicSessionIds = $sessions->where('topic_index', $index)->pluck('id');
-            $total = Attendance::whereIn('session_id', $topicSessionIds)->count();
-            $present = Attendance::whereIn('session_id', $topicSessionIds)->where('status', 'present')->count();
+        // Per-book breakdown
+        $bookBreakdown = $books->map(function ($book) use ($sessions) {
+            $bookSessions = $sessions->where('book_id', $book->id);
+            $chaptersTaughtInBook = $bookSessions->unique('chapter_index')->count();
+            $totalChaptersInBook = count($book->chapters);
             return [
-                'topic_index' => $index,
-                'topic_name' => $topicName,
-                'rate' => $total > 0 ? (float) round(($present / $total) * 100, 1) : null,
+                'book_id' => $book->id,
+                'book_name' => $book->name,
+                'total_chapters' => $totalChaptersInBook,
+                'chapters_taught' => $chaptersTaughtInBook,
+                'rate' => $totalChaptersInBook > 0 ? (float) round(($chaptersTaughtInBook / $totalChaptersInBook) * 100, 1) : 0.0,
             ];
         });
 
+        // Per-chapter attendance (renamed from topic_attendance)
+        $chapterAttendance = $books->flatMap(function ($book) use ($sessions) {
+            return collect($book->chapters)->map(function ($chapterName, $index) use ($book, $sessions) {
+                $chapterSessionIds = $sessions
+                    ->where('book_id', $book->id)
+                    ->where('chapter_index', $index)
+                    ->pluck('id');
+                $total = Attendance::whereIn('session_id', $chapterSessionIds)->count();
+                $present = Attendance::whereIn('session_id', $chapterSessionIds)->where('status', 'present')->count();
+                return [
+                    'book_id' => $book->id,
+                    'book_name' => $book->name,
+                    'chapter_index' => $index,
+                    'chapter_name' => $chapterName,
+                    'rate' => $total > 0 ? (float) round(($present / $total) * 100, 1) : null,
+                ];
+            });
+        });
+
         return new JsonResponse(['data' => [
-            'module' => ['id' => $module->id, 'name' => $module->name, 'code' => $module->code, 'total_topics' => $totalTopics],
+            'module' => ['id' => $module->id, 'name' => $module->name, 'code' => $module->code, 'total_chapters' => $totalChapters],
             'completion_rate' => $completionRate,
-            'topics_taught' => $topicsTaught,
+            'chapters_taught' => $chaptersTaught,
             'attendance_rate' => $attendanceRate,
             'class_breakdown' => $classBreakdown->values(),
-            'topic_attendance' => $topicAttendance->values(),
+            'book_breakdown' => $bookBreakdown->values(),
+            'chapter_attendance' => $chapterAttendance->values(),
         ]], 200, [], JSON_PRESERVE_ZERO_FRACTION);
     }
 }

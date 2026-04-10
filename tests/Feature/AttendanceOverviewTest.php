@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\Book;
 use App\Models\Church;
 use App\Models\Denomination;
 use App\Models\Module;
@@ -29,14 +30,15 @@ class AttendanceOverviewTest extends TestCase
     public function test_present_today_counts_correctly(): void
     {
         $class = SchoolClass::create(['name' => 'Makarios']);
-        $module = Module::create(['name' => 'Loyalty', 'code' => 'L', 'topics' => ['Intro']]);
+        $module = Module::create(['name' => 'Loyalty', 'code' => 'L']);
+        $book = Book::create(['module_id' => $module->id, 'name' => 'Book 1', 'chapters' => ['Intro'], 'position' => 0]);
         $teacher = Teacher::create(['name' => 'Pastor Emmanuel']);
         $denomination = Denomination::create(['name' => 'QFC', 'abbreviation' => 'QFC']);
         $church = Church::create(['name' => 'Main', 'denomination_id' => $denomination->id]);
         $s1 = Student::create(['name' => 'A', 'class_id' => $class->id, 'church_id' => $church->id, 'gender' => 'male']);
         $s2 = Student::create(['name' => 'B', 'class_id' => $class->id, 'church_id' => $church->id, 'gender' => 'female']);
 
-        $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'teacher_id' => $teacher->id, 'date' => now()->toDateString(), 'topic_index' => 0]);
+        $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         Attendance::create(['session_id' => $session->id, 'student_id' => $s1->id, 'status' => 'present']);
         Attendance::create(['session_id' => $session->id, 'student_id' => $s2->id, 'status' => 'absent']);
 
@@ -47,14 +49,15 @@ class AttendanceOverviewTest extends TestCase
     public function test_critical_alerts_detects_consecutive_absences(): void
     {
         $class = SchoolClass::create(['name' => 'Makarios']);
-        $module = Module::create(['name' => 'Loyalty', 'code' => 'L', 'topics' => ['A', 'B', 'C']]);
+        $module = Module::create(['name' => 'Loyalty', 'code' => 'L']);
+        $book = Book::create(['module_id' => $module->id, 'name' => 'Book 1', 'chapters' => ['A', 'B', 'C'], 'position' => 0]);
         $teacher = Teacher::create(['name' => 'Pastor Emmanuel']);
         $denomination = Denomination::create(['name' => 'QFC', 'abbreviation' => 'QFC']);
         $church = Church::create(['name' => 'Main', 'denomination_id' => $denomination->id]);
         $student = Student::create(['name' => 'Priscilla', 'class_id' => $class->id, 'church_id' => $church->id, 'gender' => 'female']);
 
         for ($i = 0; $i < 3; $i++) {
-            $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'teacher_id' => $teacher->id, 'date' => now()->subDays(2 - $i)->toDateString(), 'topic_index' => $i]);
+            $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => $i, 'teacher_id' => $teacher->id, 'date' => now()->subDays(2 - $i)->toDateString()]);
             Attendance::create(['session_id' => $session->id, 'student_id' => $student->id, 'status' => 'absent']);
         }
 

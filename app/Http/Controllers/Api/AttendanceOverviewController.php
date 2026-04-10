@@ -42,17 +42,18 @@ class AttendanceOverviewController extends Controller
         });
 
         // Module attendance
-        $moduleAttendance = Module::all()->map(function ($module) {
+        $moduleAttendance = Module::with('books')->get()->map(function ($module) {
             $sessionIds = Session::where('module_id', $module->id)->pluck('id');
             $sessionCount = $sessionIds->count();
             $total = Attendance::whereIn('session_id', $sessionIds)->count();
             $present = Attendance::whereIn('session_id', $sessionIds)->where('status', 'present')->count();
+            $totalChapters = $module->books->sum(fn ($b) => count($b->chapters));
             return [
                 'module_id' => $module->id,
                 'module_name' => $module->name,
                 'code' => $module->code,
                 'sessions' => $sessionCount,
-                'topics' => count($module->topics),
+                'total_chapters' => $totalChapters,
                 'rate' => $total > 0 ? (float) round(($present / $total) * 100, 1) : 0.0,
             ];
         });

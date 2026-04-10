@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\Book;
 use App\Models\Church;
 use App\Models\Denomination;
 use App\Models\Module;
@@ -19,14 +20,15 @@ class StudentProfileTest extends TestCase
     public function test_returns_student_profile_with_stats(): void
     {
         $class = SchoolClass::create(['name' => 'Makarios']);
-        $module = Module::create(['name' => 'Loyalty', 'code' => 'L', 'topics' => ['Intro', 'Ch1']]);
+        $module = Module::create(['name' => 'Loyalty', 'code' => 'L']);
+        $book = Book::create(['module_id' => $module->id, 'name' => 'Book 1', 'chapters' => ['Intro', 'Ch1'], 'position' => 0]);
         $teacher = Teacher::create(['name' => 'Pastor Emmanuel']);
         $denomination = Denomination::create(['name' => 'QFC', 'abbreviation' => 'QFC']);
         $church = Church::create(['name' => 'Main', 'denomination_id' => $denomination->id]);
         $student = Student::create(['name' => 'Kwame', 'class_id' => $class->id, 'church_id' => $church->id, 'gender' => 'male']);
 
-        $s1 = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'teacher_id' => $teacher->id, 'date' => '2026-04-07', 'topic_index' => 0]);
-        $s2 = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'teacher_id' => $teacher->id, 'date' => '2026-04-08', 'topic_index' => 1]);
+        $s1 = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-07']);
+        $s2 = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 1, 'teacher_id' => $teacher->id, 'date' => '2026-04-08']);
 
         Attendance::create(['session_id' => $s1->id, 'student_id' => $student->id, 'status' => 'present', 'participation_level' => 3]);
         Attendance::create(['session_id' => $s2->id, 'student_id' => $student->id, 'status' => 'absent']);

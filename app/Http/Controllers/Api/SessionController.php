@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Book;
 use App\Models\Session;
 use App\Models\Student;
 use Illuminate\Http\JsonResponse;
@@ -33,12 +34,21 @@ class SessionController extends Controller
             'module_id' => 'required|exists:modules,id',
             'teacher_id' => 'required|exists:teachers,id',
             'date' => 'required|date',
-            'topic_index' => 'required|integer|min:0',
+            'book_id' => 'required|exists:books,id',
+            'chapter_index' => 'required|integer|min:0',
             'attendance' => 'required|array|min:1',
             'attendance.*.student_id' => 'required|exists:students,id',
             'attendance.*.status' => 'required|in:present,absent',
             'attendance.*.participation_level' => 'nullable|integer|min:1|max:4',
         ]);
+
+        // Verify the book belongs to the specified module
+        $book = Book::find($validated['book_id']);
+        if ($book->module_id !== (int) $validated['module_id']) {
+            return response()->json([
+                'message' => 'Book does not belong to the specified module',
+            ], 422);
+        }
 
         // Validate all students belong to the session's class
         $studentIds = collect($validated['attendance'])->pluck('student_id');
@@ -57,9 +67,10 @@ class SessionController extends Controller
             $session = Session::create([
                 'class_id' => $validated['class_id'],
                 'module_id' => $validated['module_id'],
+                'book_id' => $validated['book_id'],
+                'chapter_index' => $validated['chapter_index'],
                 'teacher_id' => $validated['teacher_id'],
                 'date' => $validated['date'],
-                'topic_index' => $validated['topic_index'],
             ]);
 
             foreach ($validated['attendance'] as $record) {
@@ -82,7 +93,7 @@ class SessionController extends Controller
     public function show(Session $session): JsonResponse
     {
         return response()->json([
-            'data' => $session->load(['schoolClass', 'module', 'teacher', 'attendanceRecords.student']),
+            'data' => $session->load(['schoolClass', 'module', 'book', 'teacher', 'attendanceRecords.student']),
         ]);
     }
 

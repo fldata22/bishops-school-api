@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Api\AttendanceOverviewController;
+use App\Http\Controllers\Api\BookController;
 use App\Http\Controllers\Api\ChurchController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DenominationController;
@@ -30,3 +31,7 @@ Route::get('attendance-overview', AttendanceOverviewController::class);
 Route::get('students/{student}/profile', StudentProfileController::class);
 Route::get('teachers/{teacher}/stats', TeacherStatsController::class);
 Route::get('modules/{module}/progress', ModuleProgressController::class);
+
+Route::post('modules/{module}/books', [BookController::class, 'store']);
+Route::put('books/{book}', [BookController::class, 'update']);
+Route::delete('books/{book}', [BookController::class, 'destroy']);
