@@ -20,6 +20,7 @@ Route::apiResource('classes', SchoolClassController::class)->parameters(['classe
 Route::apiResource('teachers', TeacherController::class);
 Route::apiResource('modules', ModuleController::class);
 Route::apiResource('students', StudentController::class);
+Route::post('students/{student}/image', [StudentController::class, 'uploadImage']);
 Route::apiResource('teacher-module-assignments', TeacherModuleAssignmentController::class)
     ->only(['index', 'store', 'destroy']);
 Route::apiResource('sessions', SessionController::class)->except(['update']);

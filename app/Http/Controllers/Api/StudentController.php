@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -55,7 +56,35 @@ class StudentController extends Controller
 
     public function destroy(Student $student): JsonResponse
     {
+        if ($student->image) {
+            Storage::disk('public')->delete($this->pathFromUrl($student->image));
+        }
         $student->delete();
         return response()->json(null, 204);
+    }
+
+    public function uploadImage(Request $request, Student $student): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:4096',
+        ]);
+
+        if ($student->image) {
+            Storage::disk('public')->delete($this->pathFromUrl($student->image));
+        }
+
+        $path = $request->file('image')->store('students', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        $student->update(['image' => $url]);
+
+        return response()->json(['data' => $student]);
+    }
+
+    private function pathFromUrl(string $url): string
+    {
+        $prefix = '/storage/';
+        $position = strpos($url, $prefix);
+        return $position !== false ? substr($url, $position + strlen($prefix)) : $url;
     }
 }

@@ -6,6 +6,8 @@ use App\Models\Denomination;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class StudentTest extends TestCase
@@ -76,5 +78,30 @@ class StudentTest extends TestCase
         $student = Student::create(['name' => 'Kwame', 'class_id' => $this->class->id, 'church_id' => $this->church->id, 'gender' => 'male']);
         $response = $this->deleteJson("/api/students/{$student->id}");
         $response->assertStatus(204);
+    }
+
+    public function test_can_upload_student_image(): void
+    {
+        Storage::fake('public');
+        $student = Student::create(['name' => 'Kwame', 'class_id' => $this->class->id, 'church_id' => $this->church->id, 'gender' => 'male']);
+        $file = UploadedFile::fake()->image('photo.jpg', 200, 200);
+
+        $response = $this->postJson("/api/students/{$student->id}/image", ['image' => $file]);
+
+        $response->assertOk()->assertJsonPath('data.id', $student->id);
+        $student->refresh();
+        $this->assertNotNull($student->image);
+        $this->assertStringContainsString('/storage/students/', $student->image);
+    }
+
+    public function test_upload_image_rejects_non_image_file(): void
+    {
+        Storage::fake('public');
+        $student = Student::create(['name' => 'Kwame', 'class_id' => $this->class->id, 'church_id' => $this->church->id, 'gender' => 'male']);
+        $file = UploadedFile::fake()->create('document.pdf', 100, 'application/pdf');
+
+        $response = $this->postJson("/api/students/{$student->id}/image", ['image' => $file]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['image']);
     }
 }
