@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
-    protected $fillable = ['name', 'class_id', 'church_id', 'gender'];
+    protected $fillable = ['name', 'class_id', 'church_id', 'gender', 'country', 'image'];
 
     public function schoolClass(): BelongsTo
     {

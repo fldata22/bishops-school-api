@@ -27,6 +27,8 @@ class StudentController extends Controller
             'class_id' => 'required|exists:classes,id',
             'church_id' => 'required|exists:churches,id',
             'gender' => 'required|in:male,female',
+            'country' => 'nullable|string|max:255',
+            'image' => 'nullable|string|max:2048',
         ]);
         $student = Student::create($validated);
         return response()->json(['data' => $student], 201);
@@ -44,6 +46,8 @@ class StudentController extends Controller
             'class_id' => 'required|exists:classes,id',
             'church_id' => 'required|exists:churches,id',
             'gender' => 'required|in:male,female',
+            'country' => 'nullable|string|max:255',
+            'image' => 'nullable|string|max:2048',
         ]);
         $student->update($validated);
         return response()->json(['data' => $student]);
