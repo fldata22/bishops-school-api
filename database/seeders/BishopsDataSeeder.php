@@ -160,7 +160,7 @@ class BishopsDataSeeder extends Seeder
 
         // ===== BISHOP NTERFUL =====
 
-        $createClass('BN-UNITED CITIES', $nterful, 'non_consecrated', [
+        $createClass('BN-UC/UJ', $nterful, 'non_consecrated', [
             ['name' => 'Espour Kengbo', 'country' => 'Burkina Faso'],
             ['name' => 'Hugues Samandoulougou', 'country' => 'Burkina Faso'],
             ['name' => 'Josue De', 'country' => 'Burkina Faso'],
@@ -171,9 +171,6 @@ class BishopsDataSeeder extends Seeder
             ['name' => 'Harry Dartey', 'country' => 'Swaziland'],
             ['name' => 'Patrick Akese', 'country' => 'Gabon'],
             ['name' => 'Andrade Caetano', 'country' => 'Sao Tome'],
-        ]);
-
-        $createClass('UNITED JESUS', $nterful, 'non_consecrated', [
             ['name' => 'Alex Bodua'],
             ['name' => 'Daniel Kharis Boateng'],
             ['name' => 'Jerry John Kwame Mensah'],
