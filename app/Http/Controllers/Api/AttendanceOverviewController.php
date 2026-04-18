@@ -61,11 +61,15 @@ class AttendanceOverviewController extends Controller
         // Teacher activity
         $totalSessions = Session::count();
         $teacherActivity = Teacher::all()->map(function ($teacher) use ($totalSessions) {
-            $sessionCount = Session::where('teacher_id', $teacher->id)->count();
+            $sessionIds = Session::where('teacher_id', $teacher->id)->pluck('id');
+            $sessionCount = $sessionIds->count();
+            $totalAttend = Attendance::whereIn('session_id', $sessionIds)->count();
+            $presentAttend = Attendance::whereIn('session_id', $sessionIds)->where('status', 'present')->count();
             return [
                 'teacher_id' => $teacher->id,
                 'teacher_name' => $teacher->name,
                 'sessions' => $sessionCount,
+                'attendance_rate' => $totalAttend > 0 ? (float) round(($presentAttend / $totalAttend) * 100, 1) : 0.0,
                 'percentage_of_total' => $totalSessions > 0 ? (float) round(($sessionCount / $totalSessions) * 100, 1) : 0.0,
             ];
         });

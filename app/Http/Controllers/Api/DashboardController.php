@@ -16,22 +16,22 @@ class DashboardController extends Controller
         $totalAttendance = Attendance::count();
         $presentCount = Attendance::where('status', 'present')->count();
 
-        // Overall class attendance: average attendance rate across classes
+        // Overall class attendance: average attendance rate across classes with session data
         $classRates = SchoolClass::all()->map(function ($class) {
             $total = Attendance::whereHas('session', fn ($q) => $q->where('class_id', $class->id))->count();
             $present = Attendance::whereHas('session', fn ($q) => $q->where('class_id', $class->id))
                 ->where('status', 'present')->count();
-            return $total > 0 ? (float) round(($present / $total) * 100, 1) : 0;
-        });
+            return $total > 0 ? (float) round(($present / $total) * 100, 1) : null;
+        })->filter(fn ($rate) => $rate !== null);
         $overallClassAttendance = $classRates->count() > 0 ? (float) round($classRates->avg(), 1) : 0;
 
-        // Overall module attendance: average across modules (only those with data)
+        // Overall module attendance: average across modules with session data
         $moduleRates = Module::all()->map(function ($module) {
             $total = Attendance::whereHas('session', fn ($q) => $q->where('module_id', $module->id))->count();
             $present = Attendance::whereHas('session', fn ($q) => $q->where('module_id', $module->id))
                 ->where('status', 'present')->count();
-            return $total > 0 ? (float) round(($present / $total) * 100, 1) : 0;
-        })->filter(fn ($rate) => $rate > 0);
+            return $total > 0 ? (float) round(($present / $total) * 100, 1) : null;
+        })->filter(fn ($rate) => $rate !== null);
         $overallModuleAttendance = $moduleRates->count() > 0 ? (float) round($moduleRates->avg(), 1) : 0;
 
         // Teacher targets
