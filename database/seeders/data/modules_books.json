@@ -3366,5 +3366,24 @@
         ]
       }
     ]
+  },
+  {
+    "number": 17,
+    "name": "Church History",
+    "code": "CH",
+    "books": [
+      {
+        "name": "The Living History Ghana Missions",
+        "chapters": []
+      },
+      {
+        "name": "The Living History Diverse Missions",
+        "chapters": []
+      },
+      {
+        "name": "The Living History Worldwide Missions",
+        "chapters": []
+      }
+    ]
   }
 ]
