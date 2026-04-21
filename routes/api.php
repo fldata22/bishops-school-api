@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DenominationController;
 use App\Http\Controllers\Api\ModuleController;
 use App\Http\Controllers\Api\ModuleProgressController;
+use App\Http\Controllers\Api\ParticipationController;
 use App\Http\Controllers\Api\SchoolClassController;
 use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\StudentController;
@@ -34,6 +35,9 @@ Route::get('attendance-overview', AttendanceOverviewController::class);
 Route::get('students/{student}/profile', StudentProfileController::class);
 Route::get('teachers/{teacher}/stats', TeacherStatsController::class);
 Route::get('modules/{module}/progress', ModuleProgressController::class);
+
+Route::get('participation', [ParticipationController::class, 'show']);
+Route::post('participation', [ParticipationController::class, 'store']);
 
 Route::post('modules/{module}/books', [BookController::class, 'store']);
 Route::put('books/{book}', [BookController::class, 'update']);
