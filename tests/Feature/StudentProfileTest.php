@@ -6,6 +6,7 @@ use App\Models\Book;
 use App\Models\Church;
 use App\Models\Denomination;
 use App\Models\Module;
+use App\Models\Participation;
 use App\Models\SchoolClass;
 use App\Models\Session;
 use App\Models\Student;
@@ -41,6 +42,61 @@ class StudentProfileTest extends TestCase
             ->assertJsonPath('data.absent_count', 1)
             ->assertJsonPath('data.participation_average', 3.0)
             ->assertJsonPath('data.module_breakdown.0.module_name', 'Loyalty');
+    }
+
+    public function test_participation_average_includes_participation_table_records(): void
+    {
+        $class = SchoolClass::create(['name' => 'BRA-UD AFRICA']);
+        $teacher = Teacher::create(['name' => 'Bishop Richard']);
+        $student = Student::create(['name' => 'Paul Mbah', 'class_id' => $class->id]);
+
+        Participation::create([
+            'class_id' => $class->id,
+            'teacher_id' => $teacher->id,
+            'date' => '2026-04-15',
+            'records' => [
+                ['student_id' => $student->id, 'participation_level' => 4],
+            ],
+        ]);
+        Participation::create([
+            'class_id' => $class->id,
+            'teacher_id' => $teacher->id,
+            'date' => '2026-04-16',
+            'records' => [
+                ['student_id' => $student->id, 'participation_level' => 2],
+            ],
+        ]);
+
+        $response = $this->getJson("/api/students/{$student->id}/profile");
+
+        $response->assertOk()
+            ->assertJsonPath('data.participation_average', 3.0);
+    }
+
+    public function test_participation_average_combines_attendance_and_participation_sources(): void
+    {
+        $class = SchoolClass::create(['name' => 'Makarios']);
+        $module = Module::create(['name' => 'Loyalty', 'code' => 'L']);
+        $book = Book::create(['module_id' => $module->id, 'name' => 'Book 1', 'chapters' => ['Intro'], 'position' => 0]);
+        $teacher = Teacher::create(['name' => 'Pastor Emmanuel']);
+        $student = Student::create(['name' => 'Kwame', 'class_id' => $class->id]);
+
+        $session = Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-07']);
+        Attendance::create(['session_id' => $session->id, 'student_id' => $student->id, 'status' => 'present', 'participation_level' => 4]);
+
+        Participation::create([
+            'class_id' => $class->id,
+            'teacher_id' => $teacher->id,
+            'date' => '2026-04-09',
+            'records' => [
+                ['student_id' => $student->id, 'participation_level' => 2],
+            ],
+        ]);
+
+        $response = $this->getJson("/api/students/{$student->id}/profile");
+
+        $response->assertOk()
+            ->assertJsonPath('data.participation_average', 3.0);
     }
 
     public function test_returns_404_for_nonexistent_student(): void
