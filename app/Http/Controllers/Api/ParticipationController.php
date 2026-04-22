@@ -28,13 +28,14 @@ class ParticipationController extends Controller
     {
         $validated = $request->validate([
             'class_id' => 'required|exists:classes,id',
+            'teacher_id' => 'nullable|exists:teachers,id',
             'date' => 'required|date',
-            'scores' => 'required|array|min:1',
-            'scores.*.student_id' => 'required|exists:students,id',
-            'scores.*.score' => 'required|integer|min:0|max:100',
+            'records' => 'required|array|min:1',
+            'records.*.student_id' => 'required|exists:students,id',
+            'records.*.participation_level' => 'required|integer|min:1|max:4',
         ]);
 
-        $studentIds = collect($validated['scores'])->pluck('student_id');
+        $studentIds = collect($validated['records'])->pluck('student_id');
         $invalid = Student::whereIn('id', $studentIds)
             ->where('class_id', '!=', $validated['class_id'])
             ->exists();
@@ -42,13 +43,16 @@ class ParticipationController extends Controller
         if ($invalid) {
             return response()->json([
                 'message' => 'Some students do not belong to the specified class.',
-                'errors' => ['scores' => ['All students must belong to the specified class.']],
+                'errors' => ['records' => ['All students must belong to the specified class.']],
             ], 422);
         }
 
         $participation = Participation::updateOrCreate(
             ['class_id' => $validated['class_id'], 'date' => $validated['date']],
-            ['scores' => $validated['scores']],
+            [
+                'teacher_id' => $validated['teacher_id'] ?? null,
+                'records' => $validated['records'],
+            ],
         );
 
         return response()->json(['data' => $participation], $participation->wasRecentlyCreated ? 201 : 200);

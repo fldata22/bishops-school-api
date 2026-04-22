@@ -7,15 +7,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Participation extends Model
 {
-    protected $fillable = ['class_id', 'date', 'scores'];
+    protected $fillable = ['class_id', 'teacher_id', 'date', 'records'];
 
     protected $casts = [
         'date' => 'date',
-        'scores' => 'array',
+        'records' => 'array',
     ];
 
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class);
     }
 }
