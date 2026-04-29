@@ -35,7 +35,8 @@ class SessionController extends Controller
             'teacher_id' => 'required|exists:teachers,id',
             'date' => 'required|date',
             'book_id' => 'required|exists:books,id',
-            'chapter_index' => 'required|integer|min:0',
+            'chapter_indices' => 'required|array|min:1',
+            'chapter_indices.*' => 'integer|min:0',
             'attendance' => 'required|array|min:1',
             'attendance.*.student_id' => 'required|exists:students,id',
             'attendance.*.status' => 'required|in:present,absent',
@@ -48,6 +49,17 @@ class SessionController extends Controller
             return response()->json([
                 'message' => 'Book does not belong to the specified module',
             ], 422);
+        }
+
+        // Verify each chapter index exists in the book
+        $chapterCount = count($book->chapters ?? []);
+        foreach ($validated['chapter_indices'] as $index) {
+            if ($index >= $chapterCount) {
+                return response()->json([
+                    'message' => 'Chapter index out of range for the specified book.',
+                    'errors' => ['chapter_indices' => ['Chapter index ' . $index . ' does not exist in this book.']],
+                ], 422);
+            }
         }
 
         // Validate all students belong to the session's class
@@ -63,31 +75,38 @@ class SessionController extends Controller
             ], 422);
         }
 
-        $session = DB::transaction(function () use ($validated) {
-            $session = Session::create([
-                'class_id' => $validated['class_id'],
-                'module_id' => $validated['module_id'],
-                'book_id' => $validated['book_id'],
-                'chapter_index' => $validated['chapter_index'],
-                'teacher_id' => $validated['teacher_id'],
-                'date' => $validated['date'],
-            ]);
-
-            foreach ($validated['attendance'] as $record) {
-                Attendance::create([
-                    'session_id' => $session->id,
-                    'student_id' => $record['student_id'],
-                    'status' => $record['status'],
-                    'participation_level' => $record['status'] === 'present'
-                        ? ($record['participation_level'] ?? null)
-                        : null,
+        $sessions = DB::transaction(function () use ($validated) {
+            $created = [];
+            foreach ($validated['chapter_indices'] as $chapterIndex) {
+                $session = Session::create([
+                    'class_id' => $validated['class_id'],
+                    'module_id' => $validated['module_id'],
+                    'book_id' => $validated['book_id'],
+                    'chapter_index' => $chapterIndex,
+                    'teacher_id' => $validated['teacher_id'],
+                    'date' => $validated['date'],
                 ]);
+
+                foreach ($validated['attendance'] as $record) {
+                    Attendance::create([
+                        'session_id' => $session->id,
+                        'student_id' => $record['student_id'],
+                        'status' => $record['status'],
+                        'participation_level' => $record['status'] === 'present'
+                            ? ($record['participation_level'] ?? null)
+                            : null,
+                    ]);
+                }
+
+                $created[] = $session;
             }
 
-            return $session;
+            return $created;
         });
 
-        return response()->json(['data' => $session->load('attendanceRecords')], 201);
+        $loaded = collect($sessions)->map(fn ($s) => $s->load('attendanceRecords'));
+
+        return response()->json(['data' => $loaded], 201);
     }
 
     public function show(Session $session): JsonResponse

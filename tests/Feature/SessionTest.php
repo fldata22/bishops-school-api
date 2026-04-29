@@ -59,7 +59,7 @@ class SessionTest extends TestCase
             'class_id' => $this->class->id,
             'module_id' => $this->module->id,
             'book_id' => $this->book->id,
-            'chapter_index' => 0,
+            'chapter_indices' => [0],
             'teacher_id' => $this->teacher->id,
             'date' => '2026-04-09',
             'attendance' => [
@@ -83,7 +83,7 @@ class SessionTest extends TestCase
             'class_id' => $this->class->id,
             'module_id' => $this->module->id,
             'book_id' => $otherBook->id,
-            'chapter_index' => 0,
+            'chapter_indices' => [0],
             'teacher_id' => $this->teacher->id,
             'date' => '2026-04-09',
             'attendance' => [['student_id' => $this->student1->id, 'status' => 'present']],
@@ -100,12 +100,53 @@ class SessionTest extends TestCase
             'class_id' => $this->class->id,
             'module_id' => $this->module->id,
             'book_id' => $this->book->id,
-            'chapter_index' => 0,
+            'chapter_indices' => [0],
             'teacher_id' => $this->teacher->id,
             'date' => '2026-04-09',
             'attendance' => [['student_id' => $wrongStudent->id, 'status' => 'present']],
         ]);
         $response->assertStatus(422);
+    }
+
+    public function test_can_create_sessions_for_multiple_chapters(): void
+    {
+        $response = $this->postJson('/api/sessions', [
+            'class_id' => $this->class->id,
+            'module_id' => $this->module->id,
+            'book_id' => $this->book->id,
+            'chapter_indices' => [0, 1],
+            'teacher_id' => $this->teacher->id,
+            'date' => '2026-04-09',
+            'attendance' => [
+                ['student_id' => $this->student1->id, 'status' => 'present', 'participation_level' => 3],
+                ['student_id' => $this->student2->id, 'status' => 'absent'],
+            ],
+        ]);
+        $response->assertStatus(201);
+        $this->assertDatabaseCount('sessions', 2);
+        $this->assertDatabaseCount('attendance', 4);
+        $this->assertDatabaseHas('sessions', ['book_id' => $this->book->id, 'chapter_index' => 0]);
+        $this->assertDatabaseHas('sessions', ['book_id' => $this->book->id, 'chapter_index' => 1]);
+        $this->assertDatabaseHas('attendance', ['student_id' => $this->student1->id, 'status' => 'present', 'participation_level' => 3]);
+        $this->assertDatabaseHas('attendance', ['student_id' => $this->student2->id, 'status' => 'absent', 'participation_level' => null]);
+    }
+
+    public function test_invalid_chapter_index_rolls_back_all_sessions(): void
+    {
+        $response = $this->postJson('/api/sessions', [
+            'class_id' => $this->class->id,
+            'module_id' => $this->module->id,
+            'book_id' => $this->book->id,
+            'chapter_indices' => [0, 5],
+            'teacher_id' => $this->teacher->id,
+            'date' => '2026-04-09',
+            'attendance' => [
+                ['student_id' => $this->student1->id, 'status' => 'present'],
+            ],
+        ]);
+        $response->assertStatus(422);
+        $this->assertDatabaseCount('sessions', 0);
+        $this->assertDatabaseCount('attendance', 0);
     }
 
     public function test_can_show_session_with_attendance(): void
