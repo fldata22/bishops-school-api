@@ -54,8 +54,9 @@ class DashboardController extends Controller
                 }
             }
 
-            // Distinct (book_id, chapter_index) taught within assigned modules,
-            // ignoring indices that no longer exist in the book.
+            // Distinct (book_id, chapter_index) taught within assigned modules.
+            // The isset() drops sessions whose book is not in an assigned module;
+            // the index check drops chapters deleted since the session was logged.
             $taught = Session::where('teacher_id', $teacher->id)
                 ->whereIn('module_id', $moduleIds)
                 ->get(['book_id', 'chapter_index'])

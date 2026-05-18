@@ -89,6 +89,7 @@ class DashboardTest extends TestCase
             Session::create(['class_id' => $class->id, 'module_id' => $small->id, 'book_id' => $smallBook->id, 'chapter_index' => $idx, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         }
 
+        // 5 of 10 + 2 of 2 taught = 7 / 12 chapters = 58.3 (pooled, not avg of 50% & 100% = 75%)
         $response = $this->getJson('/api/dashboard');
         $response->assertJsonPath('data.teacher_targets.0.rate', 58.3);
     }
