@@ -6,34 +6,34 @@ use App\Models\Module;
 use App\Models\SchoolClass;
 use App\Models\Session;
 use App\Models\Teacher;
-use App\Models\TeacherModuleAssignment;
 use Illuminate\Http\JsonResponse;
 
 class TeacherCoverageController extends Controller
 {
     public function __invoke(Teacher $teacher): JsonResponse
     {
-        $moduleIds = TeacherModuleAssignment::where('teacher_id', $teacher->id)
-            ->distinct()->pluck('module_id');
+        // Every teacher is responsible for every module — assignment to a class
+        // implies teaching all modules in it. So the scope is all modules.
+        $modules = Module::with('books')->orderBy('id')->get();
 
-        $modules = Module::with('books')->whereIn('id', $moduleIds)->orderBy('id')->get();
-
-        // book_id => chapter count, for every book in the assigned modules.
         $bookChapterCount = [];
+        $bookToModule = [];
         foreach ($modules as $module) {
             foreach ($module->books as $book) {
                 $bookChapterCount[$book->id] = count($book->chapters ?? []);
+                $bookToModule[$book->id] = $module->id;
             }
         }
 
-        // Sessions for this teacher in any assigned module, after the stale-index guard.
+        // All sessions taught by this teacher, after the stale-index guard.
+        // We trust the book's actual module (via $bookToModule) rather than the
+        // session's stored module_id, in case the book has been re-homed.
         $validSessions = Session::where('teacher_id', $teacher->id)
-            ->whereIn('module_id', $moduleIds)
-            ->get(['module_id', 'class_id', 'book_id', 'chapter_index', 'date'])
+            ->get(['class_id', 'book_id', 'chapter_index', 'date'])
             ->filter(fn ($s) => isset($bookChapterCount[$s->book_id])
                 && $s->chapter_index < $bookChapterCount[$s->book_id]);
 
-        $sessionsByModule = $validSessions->groupBy('module_id');
+        $sessionsByModule = $validSessions->groupBy(fn ($s) => $bookToModule[$s->book_id]);
         $classNames = SchoolClass::pluck('name', 'id');
 
         $moduleData = $modules->map(function ($module) use ($sessionsByModule, $classNames) {
