@@ -8,7 +8,6 @@ use App\Models\SchoolClass;
 use App\Models\Session;
 use App\Models\Student;
 use App\Models\Teacher;
-use App\Models\TeacherModuleAssignment;
 use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
@@ -36,29 +35,25 @@ class DashboardController extends Controller
         })->filter(fn ($rate) => $rate !== null);
         $overallModuleAttendance = $moduleRates->count() > 0 ? (float) round($moduleRates->avg(), 1) : 0;
 
-        // Teacher targets: pooled lesson coverage across assigned modules.
-        $teacherTargets = Teacher::all()->map(function ($teacher) {
-            $moduleIds = TeacherModuleAssignment::where('teacher_id', $teacher->id)
-                ->distinct()->pluck('module_id');
-
-            $modules = Module::with('books')->whereIn('id', $moduleIds)->get();
-
-            // book_id => chapter count, for every book in the assigned modules.
-            $bookChapterCount = [];
-            $totalChapters = 0;
-            foreach ($modules as $module) {
-                foreach ($module->books as $book) {
-                    $count = count($book->chapters ?? []);
-                    $bookChapterCount[$book->id] = $count;
-                    $totalChapters += $count;
-                }
+        // Teacher targets: pooled lesson coverage across ALL modules. Every
+        // teacher is responsible for every module (assignment to a class
+        // implies teaching all modules in it), so the denominator is the same
+        // for everyone: total chapters across every module in the system.
+        $bookChapterCount = [];
+        $totalChapters = 0;
+        foreach (Module::with('books')->get() as $module) {
+            foreach ($module->books as $book) {
+                $count = count($book->chapters ?? []);
+                $bookChapterCount[$book->id] = $count;
+                $totalChapters += $count;
             }
+        }
 
-            // Distinct (book_id, chapter_index) taught within assigned modules.
-            // The isset() drops sessions whose book is not in an assigned module;
+        $teacherTargets = Teacher::all()->map(function ($teacher) use ($bookChapterCount, $totalChapters) {
+            // Distinct (book_id, chapter_index) taught by this teacher.
+            // The isset() drops sessions whose book no longer exists;
             // the index check drops chapters deleted since the session was logged.
             $taught = Session::where('teacher_id', $teacher->id)
-                ->whereIn('module_id', $moduleIds)
                 ->get(['book_id', 'chapter_index'])
                 ->filter(fn ($s) => isset($bookChapterCount[$s->book_id])
                     && $s->chapter_index < $bookChapterCount[$s->book_id])

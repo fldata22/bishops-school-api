@@ -6,7 +6,6 @@ use App\Models\Module;
 use App\Models\SchoolClass;
 use App\Models\Session;
 use App\Models\Teacher;
-use App\Models\TeacherModuleAssignment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,8 +19,6 @@ class TeacherCoverageTest extends TestCase
         $class = SchoolClass::create(['name' => 'A']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0'], 'position' => 0]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         $response = $this->getJson("/api/teachers/{$teacher->id}/coverage");
         $response->assertOk()
             ->assertJsonStructure(['data' => [
@@ -41,8 +38,6 @@ class TeacherCoverageTest extends TestCase
         $class = SchoolClass::create(['name' => 'A']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0', 'c1', 'c2', 'c3'], 'position' => 0]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         foreach ([0, 1] as $idx) {
             Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => $idx, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         }
@@ -63,9 +58,6 @@ class TeacherCoverageTest extends TestCase
         $bigBook = Book::create(['module_id' => $big->id, 'name' => 'BB', 'chapters' => ['0','1','2','3','4','5','6','7','8','9'], 'position' => 0]);
         $small = Module::create(['name' => 'Small', 'code' => 'SML']);
         $smallBook = Book::create(['module_id' => $small->id, 'name' => 'SB', 'chapters' => ['0','1'], 'position' => 0]);
-
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $big->id, 'class_id' => $class->id]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $small->id, 'class_id' => $class->id]);
 
         foreach ([0,1,2,3,4] as $idx) {
             Session::create(['class_id' => $class->id, 'module_id' => $big->id, 'book_id' => $bigBook->id, 'chapter_index' => $idx, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
@@ -95,8 +87,6 @@ class TeacherCoverageTest extends TestCase
         $class = SchoolClass::create(['name' => 'A']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['ch0', 'ch1', 'ch2'], 'position' => 0]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-16']);
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 2, 'teacher_id' => $teacher->id, 'date' => '2026-04-20']);
 
@@ -117,8 +107,6 @@ class TeacherCoverageTest extends TestCase
         $class = SchoolClass::create(['name' => 'A']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0'], 'position' => 0]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-16']);
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-20']);
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-18']);
@@ -133,8 +121,6 @@ class TeacherCoverageTest extends TestCase
         $class = SchoolClass::create(['name' => 'A']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0', 'c1'], 'position' => 0]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-16']);
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 5, 'teacher_id' => $teacher->id, 'date' => '2026-04-17']);
 
@@ -152,9 +138,6 @@ class TeacherCoverageTest extends TestCase
         $classA = SchoolClass::create(['name' => 'A']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0', 'c1'], 'position' => 0]);
-
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $classA->id]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $classB->id]);
 
         Session::create(['class_id' => $classB->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-16']);
         Session::create(['class_id' => $classB->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 1, 'teacher_id' => $teacher->id, 'date' => '2026-04-17']);
@@ -175,7 +158,6 @@ class TeacherCoverageTest extends TestCase
         $classB = SchoolClass::create(['name' => 'B']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0', 'c1'], 'position' => 0]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $classA->id]);
 
         Session::create(['class_id' => $classA->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-16']);
         Session::create(['class_id' => $classB->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-17']);
@@ -185,7 +167,7 @@ class TeacherCoverageTest extends TestCase
             ->assertJsonPath('data.rate', 50.0);
     }
 
-    public function test_zero_assignment_teacher_returns_empty_modules(): void
+    public function test_teacher_with_no_modules_in_db_returns_empty_modules(): void
     {
         $teacher = Teacher::create(['name' => 'Idle']);
         $response = $this->getJson("/api/teachers/{$teacher->id}/coverage");
@@ -194,6 +176,45 @@ class TeacherCoverageTest extends TestCase
             ->assertJsonPath('data.taught_chapters', 0)
             ->assertJsonPath('data.total_chapters', 0)
             ->assertJsonPath('data.modules', []);
+    }
+
+    public function test_every_module_in_db_appears_even_without_sessions(): void
+    {
+        // A teacher with no sessions should still see every module — each at 0%.
+        $teacher = Teacher::create(['name' => 'New']);
+        $modA = Module::create(['name' => 'A', 'code' => 'A']);
+        Book::create(['module_id' => $modA->id, 'name' => 'BA', 'chapters' => ['a0', 'a1'], 'position' => 0]);
+        $modB = Module::create(['name' => 'B', 'code' => 'B']);
+        Book::create(['module_id' => $modB->id, 'name' => 'BB', 'chapters' => ['b0'], 'position' => 0]);
+
+        $response = $this->getJson("/api/teachers/{$teacher->id}/coverage");
+        $response->assertOk()
+            ->assertJsonPath('data.rate', 0.0)
+            ->assertJsonPath('data.taught_chapters', 0)
+            ->assertJsonPath('data.total_chapters', 3)
+            ->assertJsonCount(2, 'data.modules')
+            ->assertJsonPath('data.modules.0.rate', 0.0)
+            ->assertJsonPath('data.modules.1.rate', 0.0);
+    }
+
+    public function test_untouched_module_chapters_count_toward_overall_denominator(): void
+    {
+        // The teacher only teaches one module, but other modules still count
+        // toward total_chapters — making the % reflect work still to do.
+        $class = SchoolClass::create(['name' => 'A']);
+        $teacher = Teacher::create(['name' => 'T']);
+        $started = Module::create(['name' => 'Started', 'code' => 'S']);
+        $startedBook = Book::create(['module_id' => $started->id, 'name' => 'SB', 'chapters' => ['s0', 's1'], 'position' => 0]);
+        $untouched = Module::create(['name' => 'Untouched', 'code' => 'U']);
+        Book::create(['module_id' => $untouched->id, 'name' => 'UB', 'chapters' => ['u0', 'u1', 'u2'], 'position' => 0]);
+
+        Session::create(['class_id' => $class->id, 'module_id' => $started->id, 'book_id' => $startedBook->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => '2026-04-16']);
+
+        $response = $this->getJson("/api/teachers/{$teacher->id}/coverage");
+        $response->assertOk()
+            ->assertJsonPath('data.rate', 20.0)
+            ->assertJsonPath('data.taught_chapters', 1)
+            ->assertJsonPath('data.total_chapters', 5);
     }
 
     public function test_returns_404_for_unknown_teacher(): void
@@ -210,8 +231,6 @@ class TeacherCoverageTest extends TestCase
         // Create books in reverse position order to verify sort
         $bookSecond = Book::create(['module_id' => $module->id, 'name' => 'Second', 'chapters' => ['s0'], 'position' => 2]);
         $bookFirst = Book::create(['module_id' => $module->id, 'name' => 'First', 'chapters' => ['f0', 'f1'], 'position' => 1]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         $response = $this->getJson("/api/teachers/{$teacher->id}/coverage");
         $response->assertJsonPath('data.modules.0.books.0.id', $bookFirst->id)
             ->assertJsonPath('data.modules.0.books.0.position', 1)

@@ -10,7 +10,6 @@ use App\Models\SchoolClass;
 use App\Models\Session;
 use App\Models\Student;
 use App\Models\Teacher;
-use App\Models\TeacherModuleAssignment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -57,8 +56,6 @@ class DashboardTest extends TestCase
         $module = Module::create(['name' => 'Loyalty', 'code' => 'L']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B1', 'chapters' => ['c0', 'c1', 'c2', 'c3'], 'position' => 0]);
 
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         foreach ([0, 1] as $idx) {
             Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => $idx, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         }
@@ -79,9 +76,6 @@ class DashboardTest extends TestCase
         $small = Module::create(['name' => 'Small', 'code' => 'SML']);
         $smallBook = Book::create(['module_id' => $small->id, 'name' => 'SB', 'chapters' => ['0','1'], 'position' => 0]);
 
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $big->id, 'class_id' => $class->id]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $small->id, 'class_id' => $class->id]);
-
         foreach ([0,1,2,3,4] as $idx) {
             Session::create(['class_id' => $class->id, 'module_id' => $big->id, 'book_id' => $bigBook->id, 'chapter_index' => $idx, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         }
@@ -94,12 +88,32 @@ class DashboardTest extends TestCase
         $response->assertJsonPath('data.teacher_targets.0.rate', 58.3);
     }
 
-    public function test_teacher_with_no_assignments_has_zero_rate(): void
+    public function test_teacher_with_no_sessions_has_zero_rate(): void
     {
         Teacher::create(['name' => 'Idle Teacher']);
 
         $response = $this->getJson('/api/dashboard');
         $response->assertJsonPath('data.teacher_targets.0.rate', 0.0);
+    }
+
+    public function test_teacher_target_counts_every_module_in_the_database(): void
+    {
+        // The denominator is "all chapters in all modules" — chapters in modules
+        // the teacher has not started yet still count toward total_chapters.
+        $class = SchoolClass::create(['name' => 'A']);
+        $teacher = Teacher::create(['name' => 'T']);
+        $startedModule = Module::create(['name' => 'Started', 'code' => 'S']);
+        $startedBook = Book::create(['module_id' => $startedModule->id, 'name' => 'SB', 'chapters' => ['s0', 's1'], 'position' => 0]);
+        $untouchedModule = Module::create(['name' => 'Untouched', 'code' => 'U']);
+        Book::create(['module_id' => $untouchedModule->id, 'name' => 'UB', 'chapters' => ['u0', 'u1', 'u2'], 'position' => 0]);
+
+        Session::create(['class_id' => $class->id, 'module_id' => $startedModule->id, 'book_id' => $startedBook->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
+
+        // Without the new behavior this would be 1/2 = 50% (started module only).
+        // With the new behavior it's 1/(2+3) = 20% — the untouched module's
+        // chapters still count toward the denominator.
+        $response = $this->getJson('/api/dashboard');
+        $response->assertJsonPath('data.teacher_targets.0.rate', 20.0);
     }
 
     public function test_chapter_taught_in_two_classes_counts_once(): void
@@ -109,8 +123,6 @@ class DashboardTest extends TestCase
         $teacher = Teacher::create(['name' => 'T']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0', 'c1'], 'position' => 0]);
-
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $classA->id]);
 
         Session::create(['class_id' => $classA->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         Session::create(['class_id' => $classB->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
@@ -126,8 +138,6 @@ class DashboardTest extends TestCase
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         $book = Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0', 'c1'], 'position' => 0]);
 
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
-
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 0, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
         Session::create(['class_id' => $class->id, 'module_id' => $module->id, 'book_id' => $book->id, 'chapter_index' => 5, 'teacher_id' => $teacher->id, 'date' => now()->toDateString()]);
 
@@ -137,11 +147,9 @@ class DashboardTest extends TestCase
 
     public function test_teacher_targets_do_not_include_rating(): void
     {
-        $class = SchoolClass::create(['name' => 'A']);
         $teacher = Teacher::create(['name' => 'T']);
         $module = Module::create(['name' => 'M', 'code' => 'M']);
         Book::create(['module_id' => $module->id, 'name' => 'B', 'chapters' => ['c0'], 'position' => 0]);
-        TeacherModuleAssignment::create(['teacher_id' => $teacher->id, 'module_id' => $module->id, 'class_id' => $class->id]);
 
         $response = $this->getJson('/api/dashboard');
         $data = $response->json('data.teacher_targets.0');
