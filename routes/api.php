@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\StudentProfileController;
 use App\Http\Controllers\Api\TeacherController;
+use App\Http\Controllers\Api\TeacherCoverageController;
 use App\Http\Controllers\Api\TeacherModuleAssignmentController;
 use App\Http\Controllers\Api\TeacherStatsController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,7 @@ Route::get('dashboard', DashboardController::class);
 Route::get('attendance-overview', AttendanceOverviewController::class);
 Route::get('students/{student}/profile', StudentProfileController::class);
 Route::get('teachers/{teacher}/stats', TeacherStatsController::class);
+Route::get('teachers/{teacher}/coverage', TeacherCoverageController::class);
 Route::get('modules/{module}/progress', ModuleProgressController::class);
 
 Route::get('participation', [ParticipationController::class, 'show']);
