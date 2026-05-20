@@ -5,8 +5,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Module;
 use App\Models\SchoolClass;
+use App\Models\Session;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Models\TeacherModuleAssignment;
 use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
@@ -34,17 +36,43 @@ class DashboardController extends Controller
         })->filter(fn ($rate) => $rate !== null);
         $overallModuleAttendance = $moduleRates->count() > 0 ? (float) round($moduleRates->avg(), 1) : 0;
 
-        // Teacher targets
+        // Teacher targets: pooled lesson coverage across assigned modules.
         $teacherTargets = Teacher::all()->map(function ($teacher) {
-            $total = Attendance::whereHas('session', fn ($q) => $q->where('teacher_id', $teacher->id))->count();
-            $present = Attendance::whereHas('session', fn ($q) => $q->where('teacher_id', $teacher->id))
-                ->where('status', 'present')->count();
-            $rate = $total > 0 ? (float) round(($present / $total) * 100, 1) : 0;
+            $moduleIds = TeacherModuleAssignment::where('teacher_id', $teacher->id)
+                ->distinct()->pluck('module_id');
+
+            $modules = Module::with('books')->whereIn('id', $moduleIds)->get();
+
+            // book_id => chapter count, for every book in the assigned modules.
+            $bookChapterCount = [];
+            $totalChapters = 0;
+            foreach ($modules as $module) {
+                foreach ($module->books as $book) {
+                    $count = count($book->chapters ?? []);
+                    $bookChapterCount[$book->id] = $count;
+                    $totalChapters += $count;
+                }
+            }
+
+            // Distinct (book_id, chapter_index) taught within assigned modules.
+            // The isset() drops sessions whose book is not in an assigned module;
+            // the index check drops chapters deleted since the session was logged.
+            $taught = Session::where('teacher_id', $teacher->id)
+                ->whereIn('module_id', $moduleIds)
+                ->get(['book_id', 'chapter_index'])
+                ->filter(fn ($s) => isset($bookChapterCount[$s->book_id])
+                    && $s->chapter_index < $bookChapterCount[$s->book_id])
+                ->unique(fn ($s) => $s->book_id . '-' . $s->chapter_index)
+                ->count();
+
+            $rate = $totalChapters > 0
+                ? (float) round(($taught / $totalChapters) * 100, 1)
+                : 0.0;
+
             return [
                 'id' => $teacher->id,
                 'name' => $teacher->name,
                 'rate' => $rate,
-                'rating' => $rate >= 85 ? 'Excellent' : ($rate >= 70 ? 'Good' : 'Needs Improvement'),
             ];
         });
 
